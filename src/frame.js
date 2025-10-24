@@ -13,17 +13,21 @@ module.exports = (function () {
         this.graph = graph;
         this.nodesHaveBeenNormalized = false;
         this.hasCameraBeenPositioned = false;
+        this.agentMeshes = [];
+        this.agents = [];
 
         var width = elem.scrollWidth;
         var height = elem.scrollHeight;
         var aspectRatio = width/height;
 
         this.scale = 1;
+        this.lastFrameTime = Date.now();
 
         this._initScene();
         this._initRenderer(width, height, elem);
         this._initNodes();
         this._initEdges();
+        this._initAgents();
 
         this._initCamera(aspectRatio);
         this._initControls(elem);
@@ -204,6 +208,11 @@ module.exports = (function () {
         this.scene.add(this.line);
     };
 
+    Frame.prototype._initAgents = function () {
+        this.agentGroup = new THREE.Group();
+        this.scene.add(this.agentGroup);
+    };
+
     Frame.prototype._syncEdgeDataFromGraph = function () {
         var edges = this.graph.edges();
 
@@ -247,14 +256,17 @@ module.exports = (function () {
 
     Frame.prototype._initMouseEvents = function (elem) {
         var self = this;
-        var createMouseHandler = function (callback) {
+        var mouseDownPos = null;
+        
+        var createMouseHandler = function (callback, includeEdges) {
             var raycaster = new THREE.Raycaster();
 
             return function (evt) {
                 evt.preventDefault();
 
-                var mouseX = (evt.clientX / window.innerWidth) * 2 - 1;
-                var mouseY = 1 - (evt.clientY / window.innerHeight) * 2;
+                var rect = elem.getBoundingClientRect();
+                var mouseX = ((evt.clientX - rect.left) / rect.width) * 2 - 1;
+                var mouseY = -((evt.clientY - rect.top) / rect.height) * 2 + 1;
 
                 // Calculate mouse position
                 var mousePosition = new THREE.Vector3(mouseX, mouseY, 0.1);
@@ -263,7 +275,7 @@ module.exports = (function () {
 
                 // Calculate threshold
                 var clickRadiusPx = 5;  // 5px
-                var radiusX = ((evt.clientX + clickRadiusPx) / window.innerWidth) * 2 - 1;
+                var radiusX = ((evt.clientX - rect.left + clickRadiusPx) / rect.width) * 2 - 1;
                 radiusPosition.setX(radiusX);
                 radiusPosition.unproject(self.camera);
 
@@ -277,27 +289,67 @@ module.exports = (function () {
                 var mouseDirection = (
                     mousePosition.sub(self.camera.position).normalize());
                 raycaster.set(self.camera.position, mouseDirection);
+                
+                // Check nodes first
                 var intersects = raycaster.intersectObject(self.pointCloud);
                 if (intersects.length) {
                     var nodeIndex = intersects[0].index;
-                    callback(self.graph._nodes[nodeIndex]);
+                    callback({
+                        type: 'node',
+                        node: self.graph._nodes[nodeIndex]
+                    });
+                    return;
+                }
+                
+                // Check edges if enabled
+                if (includeEdges) {
+                    raycaster.params.Line.threshold = 0.02;
+                    var edgeIntersects = raycaster.intersectObject(self.line);
+                    if (edgeIntersects.length) {
+                        var edgeIndex = Math.floor(edgeIntersects[0].index / 2);
+                        if (edgeIndex < self.graph._edges.length) {
+                            callback({
+                                type: 'edge',
+                                edge: self.graph._edges[edgeIndex]
+                            });
+                        }
+                    }
                 }
             };
         };
 
+        // Track mouse down to distinguish clicks from drags
+        elem.addEventListener('mousedown', function(e) {
+            mouseDownPos = { x: e.clientX, y: e.clientY };
+        }, false);
+
         if (this.graph._hover) {
             elem.addEventListener(
-                'mousemove', createMouseHandler(this.graph._hover), false);
+                'mousemove', createMouseHandler(this.graph._hover, false), false);
         }
 
         if (this.graph._click) {
-            elem.addEventListener(
-                'click', createMouseHandler(this.graph._click), false);
+            elem.addEventListener('mouseup', function(e) {
+                if (!mouseDownPos) {
+                    return;
+                }
+                
+                var dx = e.clientX - mouseDownPos.x;
+                var dy = e.clientY - mouseDownPos.y;
+                var distance = Math.sqrt(dx*dx + dy*dy);
+                
+                mouseDownPos = null;
+                
+                // Only treat as click if mouse didn't move much
+                if (distance < 5) {
+                    createMouseHandler(self.graph._click, true)(e);
+                }
+            }, false);
         }
 
         if (this.graph._rightClick) {
             elem.addEventListener(
-                'contextmenu', createMouseHandler(this.graph._rightClick), false);
+                'contextmenu', createMouseHandler(this.graph._rightClick, true), false);
         }
     };
 
@@ -323,14 +375,95 @@ module.exports = (function () {
         };
     }());
 
+    Frame.prototype.addAgent = function (agent) {
+        var geometry, material, mesh;
+        
+        // Create geometry based on shape
+        if (agent._shape === 'cube') {
+            geometry = new THREE.BoxGeometry(agent._size * 0.01, agent._size * 0.01, agent._size * 0.01);
+        } else if (agent._shape === 'cone') {
+            geometry = new THREE.ConeGeometry(agent._size * 0.005, agent._size * 0.01, 8);
+        } else {
+            geometry = new THREE.SphereGeometry(agent._size * 0.005, 16, 16);
+        }
+        
+        material = new THREE.MeshBasicMaterial({
+            color: agent._color,
+            transparent: true,
+            opacity: 0.9
+        });
+        
+        mesh = new THREE.Mesh(geometry, material);
+        
+        var pos = agent.getPosition();
+        mesh.position.set(pos.x * this.scale, pos.y * this.scale, pos.z * this.scale);
+        
+        this.agentGroup.add(mesh);
+        this.agents.push(agent);
+        this.agentMeshes.push(mesh);
+        
+        this.forceRerender();
+        return this;
+    };
+
+    Frame.prototype.removeAgent = function (agent) {
+        var index = this.agents.indexOf(agent);
+        if (index !== -1) {
+            var mesh = this.agentMeshes[index];
+            this.agentGroup.remove(mesh);
+            this.agents.splice(index, 1);
+            this.agentMeshes.splice(index, 1);
+            this.forceRerender();
+        }
+        return this;
+    };
+
+    Frame.prototype.purgeAgents = function () {
+        while (this.agentGroup.children.length > 0) {
+            this.agentGroup.remove(this.agentGroup.children[0]);
+        }
+        this.agents = [];
+        this.agentMeshes = [];
+        this.forceRerender();
+        return this;
+    };
+
+    Frame.prototype._updateAgents = function (deltaTime) {
+        var needsRender = false;
+        
+        for (var i = 0; i < this.agents.length; i++) {
+            var agent = this.agents[i];
+            var mesh = this.agentMeshes[i];
+            
+            if (agent.isActive()) {
+                agent.update(deltaTime);
+                var pos = agent.getPosition();
+                mesh.position.set(pos.x * this.scale, pos.y * this.scale, pos.z * this.scale);
+                needsRender = true;
+            }
+        }
+        
+        return needsRender;
+    };
+
     Frame.prototype._animate = function () {
         var self = this,
             sorter = new BufferGeometrySorter(5);
 
         // Update near/far camera range
         (function animate() {
+            var currentTime = Date.now();
+            var deltaTime = (currentTime - self.lastFrameTime) / 1000; // Convert to seconds
+            self.lastFrameTime = currentTime;
+
             self._updateCameraBounds();
+            var agentsNeedRender = self._updateAgents(deltaTime);
             sorter.sort(self.points.attributes, self.controls.object.position);
+
+            // Force re-render if agents are moving
+            if (agentsNeedRender) {
+                self.forceRerender();
+            }
 
             window.requestAnimationFrame(animate);
             self.controls.update();

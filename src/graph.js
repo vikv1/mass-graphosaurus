@@ -26,6 +26,7 @@ module.exports = (function () {
         this._nodeIds = {};
         this._nodes = [];
         this._edges = [];
+        this._agents = [];
         this._frames = [];
         this._autoRender = true;
         this._initProps(props);
@@ -211,6 +212,49 @@ module.exports = (function () {
                 frame.forceRerender();
             });
         }
+    };
+
+    /**
+     * Add an Agent to the Graph
+     */
+    Graph.prototype.addAgent = function (agent) {
+        this._agents.push(agent);
+        this._frames.forEach(function (frame) {
+            frame.addAgent(agent);
+        });
+        return this;
+    };
+
+    /**
+     * Remove an Agent from the Graph
+     */
+    Graph.prototype.removeAgent = function (agent) {
+        var index = this._agents.indexOf(agent);
+        if (index !== -1) {
+            this._agents.splice(index, 1);
+            this._frames.forEach(function (frame) {
+                frame.removeAgent(agent);
+            });
+        }
+        return this;
+    };
+
+    /**
+     * Get all agents in the Graph
+     */
+    Graph.prototype.agents = function () {
+        return this._agents;
+    };
+
+    /**
+     * Remove all agents from the Graph
+     */
+    Graph.prototype.purgeAgents = function () {
+        this._agents.length = 0;
+        this._frames.forEach(function (frame) {
+            frame.purgeAgents();
+        });
+        return this;
     };
 
     return Graph;

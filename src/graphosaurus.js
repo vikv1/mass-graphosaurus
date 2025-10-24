@@ -5,6 +5,7 @@
         Node = require("./node"),
         Edge = require("./edge"),
         Graph = require("./graph"),
+        Agent = require("./agent"),
         nonew = require("nonew");
 
     window.G = window.Graphosaurus = {
@@ -19,5 +20,8 @@
 
         Graph: Graph,
         graph: nonew(Graph),
+
+        Agent: Agent,
+        agent: nonew(Agent),
     };
 }());

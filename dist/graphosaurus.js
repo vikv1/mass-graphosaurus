@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -41392,6 +41392,143 @@ module.exports = (function () {
     var THREE = require("three");
 
     /**
+     * Constructs a new Agent
+     * @constructor
+     * @alias Agent
+     *
+     * @param {Node} startNode - The node where the agent starts
+     * @param {Object} props - Object containing optional properties of the Agent
+     * @param {Number|String} props.color - Hexadecimal or CSS-style string representation of a color; defaults to 'yellow'
+     * @param {Number} props.size - Size of the agent marker; defaults to 20
+     * @param {String} props.shape - Shape of the agent ('sphere', 'cube', 'cone'); defaults to 'sphere'
+     * @param {Object} props.data - Custom data attached to the agent
+     */
+    var Agent = function (startNode, props) {
+        this._currentNode = startNode;
+        this._targetNode = null;
+        this._progress = 0;
+        this._speed = 1;
+        this._active = true;
+        this._initProps(props);
+    };
+
+    Agent.prototype._initProps = function (properties) {
+        properties = properties || {};
+
+        var color = properties.color !== undefined ? properties.color : "yellow";
+        this._color = new THREE.Color(color);
+
+        this._size = properties.size !== undefined ? properties.size : 20;
+        this._shape = properties.shape || 'sphere';
+        this.data = properties.data || {};
+
+        return this;
+    };
+
+    /**
+     * Get current position of the agent
+     */
+    Agent.prototype.getPosition = function () {
+        if (!this._targetNode) {
+            return this._currentNode._pos.clone();
+        }
+
+        // Interpolate between current and target node
+        var start = this._currentNode._pos;
+        var end = this._targetNode._pos;
+        
+        return new THREE.Vector3(
+            start.x + (end.x - start.x) * this._progress,
+            start.y + (end.y - start.y) * this._progress,
+            start.z + (end.z - start.z) * this._progress
+        );
+    };
+
+    /**
+     * Move agent to target node
+     */
+    Agent.prototype.moveTo = function (targetNode, speed) {
+        this._targetNode = targetNode;
+        this._progress = 0;
+        this._speed = speed !== undefined ? speed : 1;
+        return this;
+    };
+
+    /**
+     * Update agent movement (called each frame)
+     */
+    Agent.prototype.update = function (deltaTime) {
+        if (!this._active || !this._targetNode) {
+            return false;
+        }
+
+        this._progress += this._speed * deltaTime;
+
+        if (this._progress >= 1) {
+            this._currentNode = this._targetNode;
+            this._targetNode = null;
+            this._progress = 0;
+            return true; // Movement complete
+        }
+
+        return false;
+    };
+
+    /**
+     * Check if agent is currently moving
+     */
+    Agent.prototype.isMoving = function () {
+        return this._targetNode !== null;
+    };
+
+    /**
+     * Get current node
+     */
+    Agent.prototype.getCurrentNode = function () {
+        return this._currentNode;
+    };
+
+    /**
+     * Set agent color
+     */
+    Agent.prototype.setColor = function (color) {
+        this._color.set(color);
+        return this;
+    };
+
+    /**
+     * Get agent color
+     */
+    Agent.prototype.color = function () {
+        return this._color.getHexString();
+    };
+
+    /**
+     * Activate/deactivate agent
+     */
+    Agent.prototype.setActive = function (active) {
+        this._active = active;
+        return this;
+    };
+
+    /**
+     * Check if agent is active
+     */
+    Agent.prototype.isActive = function () {
+        return this._active;
+    };
+
+    return Agent;
+}());
+
+
+},{"three":4}],6:[function(require,module,exports){
+module.exports = (function () {
+    "use strict";
+
+    var THREE = require("three");
+
+    /**
      * Constructs a new Edge
      * @constructor
      * @alias Edge
@@ -41417,6 +41554,9 @@ module.exports = (function () {
 
         var color = properties.color || "white";
         this._color = new THREE.Color(color);
+
+        // Store custom data properties
+        this.data = properties.data || {};
 
         return this;
     };
@@ -41492,7 +41632,7 @@ module.exports = (function () {
     return Edge;
 }());
 
-},{"three":4}],6:[function(require,module,exports){
+},{"three":4}],7:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -41508,17 +41648,21 @@ module.exports = (function () {
         this.graph = graph;
         this.nodesHaveBeenNormalized = false;
         this.hasCameraBeenPositioned = false;
+        this.agentMeshes = [];
+        this.agents = [];
 
         var width = elem.scrollWidth;
         var height = elem.scrollHeight;
         var aspectRatio = width/height;
 
         this.scale = 1;
+        this.lastFrameTime = Date.now();
 
         this._initScene();
         this._initRenderer(width, height, elem);
         this._initNodes();
         this._initEdges();
+        this._initAgents();
 
         this._initCamera(aspectRatio);
         this._initControls(elem);
@@ -41699,6 +41843,11 @@ module.exports = (function () {
         this.scene.add(this.line);
     };
 
+    Frame.prototype._initAgents = function () {
+        this.agentGroup = new THREE.Group();
+        this.scene.add(this.agentGroup);
+    };
+
     Frame.prototype._syncEdgeDataFromGraph = function () {
         var edges = this.graph.edges();
 
@@ -41742,14 +41891,17 @@ module.exports = (function () {
 
     Frame.prototype._initMouseEvents = function (elem) {
         var self = this;
-        var createMouseHandler = function (callback) {
+        var mouseDownPos = null;
+        
+        var createMouseHandler = function (callback, includeEdges) {
             var raycaster = new THREE.Raycaster();
 
             return function (evt) {
                 evt.preventDefault();
 
-                var mouseX = (evt.clientX / window.innerWidth) * 2 - 1;
-                var mouseY = 1 - (evt.clientY / window.innerHeight) * 2;
+                var rect = elem.getBoundingClientRect();
+                var mouseX = ((evt.clientX - rect.left) / rect.width) * 2 - 1;
+                var mouseY = -((evt.clientY - rect.top) / rect.height) * 2 + 1;
 
                 // Calculate mouse position
                 var mousePosition = new THREE.Vector3(mouseX, mouseY, 0.1);
@@ -41758,7 +41910,7 @@ module.exports = (function () {
 
                 // Calculate threshold
                 var clickRadiusPx = 5;  // 5px
-                var radiusX = ((evt.clientX + clickRadiusPx) / window.innerWidth) * 2 - 1;
+                var radiusX = ((evt.clientX - rect.left + clickRadiusPx) / rect.width) * 2 - 1;
                 radiusPosition.setX(radiusX);
                 radiusPosition.unproject(self.camera);
 
@@ -41772,27 +41924,67 @@ module.exports = (function () {
                 var mouseDirection = (
                     mousePosition.sub(self.camera.position).normalize());
                 raycaster.set(self.camera.position, mouseDirection);
+                
+                // Check nodes first
                 var intersects = raycaster.intersectObject(self.pointCloud);
                 if (intersects.length) {
                     var nodeIndex = intersects[0].index;
-                    callback(self.graph._nodes[nodeIndex]);
+                    callback({
+                        type: 'node',
+                        node: self.graph._nodes[nodeIndex]
+                    });
+                    return;
+                }
+                
+                // Check edges if enabled
+                if (includeEdges) {
+                    raycaster.params.Line.threshold = 0.02;
+                    var edgeIntersects = raycaster.intersectObject(self.line);
+                    if (edgeIntersects.length) {
+                        var edgeIndex = Math.floor(edgeIntersects[0].index / 2);
+                        if (edgeIndex < self.graph._edges.length) {
+                            callback({
+                                type: 'edge',
+                                edge: self.graph._edges[edgeIndex]
+                            });
+                        }
+                    }
                 }
             };
         };
 
+        // Track mouse down to distinguish clicks from drags
+        elem.addEventListener('mousedown', function(e) {
+            mouseDownPos = { x: e.clientX, y: e.clientY };
+        }, false);
+
         if (this.graph._hover) {
             elem.addEventListener(
-                'mousemove', createMouseHandler(this.graph._hover), false);
+                'mousemove', createMouseHandler(this.graph._hover, false), false);
         }
 
         if (this.graph._click) {
-            elem.addEventListener(
-                'click', createMouseHandler(this.graph._click), false);
+            elem.addEventListener('mouseup', function(e) {
+                if (!mouseDownPos) {
+                    return;
+                }
+                
+                var dx = e.clientX - mouseDownPos.x;
+                var dy = e.clientY - mouseDownPos.y;
+                var distance = Math.sqrt(dx*dx + dy*dy);
+                
+                mouseDownPos = null;
+                
+                // Only treat as click if mouse didn't move much
+                if (distance < 5) {
+                    createMouseHandler(self.graph._click, true)(e);
+                }
+            }, false);
         }
 
         if (this.graph._rightClick) {
             elem.addEventListener(
-                'contextmenu', createMouseHandler(this.graph._rightClick), false);
+                'contextmenu', createMouseHandler(this.graph._rightClick, true), false);
         }
     };
 
@@ -41818,14 +42010,95 @@ module.exports = (function () {
         };
     }());
 
+    Frame.prototype.addAgent = function (agent) {
+        var geometry, material, mesh;
+        
+        // Create geometry based on shape
+        if (agent._shape === 'cube') {
+            geometry = new THREE.BoxGeometry(agent._size * 0.01, agent._size * 0.01, agent._size * 0.01);
+        } else if (agent._shape === 'cone') {
+            geometry = new THREE.ConeGeometry(agent._size * 0.005, agent._size * 0.01, 8);
+        } else {
+            geometry = new THREE.SphereGeometry(agent._size * 0.005, 16, 16);
+        }
+        
+        material = new THREE.MeshBasicMaterial({
+            color: agent._color,
+            transparent: true,
+            opacity: 0.9
+        });
+        
+        mesh = new THREE.Mesh(geometry, material);
+        
+        var pos = agent.getPosition();
+        mesh.position.set(pos.x * this.scale, pos.y * this.scale, pos.z * this.scale);
+        
+        this.agentGroup.add(mesh);
+        this.agents.push(agent);
+        this.agentMeshes.push(mesh);
+        
+        this.forceRerender();
+        return this;
+    };
+
+    Frame.prototype.removeAgent = function (agent) {
+        var index = this.agents.indexOf(agent);
+        if (index !== -1) {
+            var mesh = this.agentMeshes[index];
+            this.agentGroup.remove(mesh);
+            this.agents.splice(index, 1);
+            this.agentMeshes.splice(index, 1);
+            this.forceRerender();
+        }
+        return this;
+    };
+
+    Frame.prototype.purgeAgents = function () {
+        while (this.agentGroup.children.length > 0) {
+            this.agentGroup.remove(this.agentGroup.children[0]);
+        }
+        this.agents = [];
+        this.agentMeshes = [];
+        this.forceRerender();
+        return this;
+    };
+
+    Frame.prototype._updateAgents = function (deltaTime) {
+        var needsRender = false;
+        
+        for (var i = 0; i < this.agents.length; i++) {
+            var agent = this.agents[i];
+            var mesh = this.agentMeshes[i];
+            
+            if (agent.isActive()) {
+                agent.update(deltaTime);
+                var pos = agent.getPosition();
+                mesh.position.set(pos.x * this.scale, pos.y * this.scale, pos.z * this.scale);
+                needsRender = true;
+            }
+        }
+        
+        return needsRender;
+    };
+
     Frame.prototype._animate = function () {
         var self = this,
             sorter = new BufferGeometrySorter(5);
 
         // Update near/far camera range
         (function animate() {
+            var currentTime = Date.now();
+            var deltaTime = (currentTime - self.lastFrameTime) / 1000; // Convert to seconds
+            self.lastFrameTime = currentTime;
+
             self._updateCameraBounds();
+            var agentsNeedRender = self._updateAgents(deltaTime);
             sorter.sort(self.points.attributes, self.controls.object.position);
+
+            // Force re-render if agents are moving
+            if (agentsNeedRender) {
+                self.forceRerender();
+            }
 
             window.requestAnimationFrame(animate);
             self.controls.update();
@@ -41835,7 +42108,7 @@ module.exports = (function () {
     return Frame;
 }());
 
-},{"three":4,"three-buffergeometry-sort":2,"three.trackball":3}],7:[function(require,module,exports){
+},{"three":4,"three-buffergeometry-sort":2,"three.trackball":3}],8:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -41864,6 +42137,7 @@ module.exports = (function () {
         this._nodeIds = {};
         this._nodes = [];
         this._edges = [];
+        this._agents = [];
         this._frames = [];
         this._autoRender = true;
         this._initProps(props);
@@ -42051,10 +42325,53 @@ module.exports = (function () {
         }
     };
 
+    /**
+     * Add an Agent to the Graph
+     */
+    Graph.prototype.addAgent = function (agent) {
+        this._agents.push(agent);
+        this._frames.forEach(function (frame) {
+            frame.addAgent(agent);
+        });
+        return this;
+    };
+
+    /**
+     * Remove an Agent from the Graph
+     */
+    Graph.prototype.removeAgent = function (agent) {
+        var index = this._agents.indexOf(agent);
+        if (index !== -1) {
+            this._agents.splice(index, 1);
+            this._frames.forEach(function (frame) {
+                frame.removeAgent(agent);
+            });
+        }
+        return this;
+    };
+
+    /**
+     * Get all agents in the Graph
+     */
+    Graph.prototype.agents = function () {
+        return this._agents;
+    };
+
+    /**
+     * Remove all agents from the Graph
+     */
+    Graph.prototype.purgeAgents = function () {
+        this._agents.length = 0;
+        this._frames.forEach(function (frame) {
+            frame.purgeAgents();
+        });
+        return this;
+    };
+
     return Graph;
 }());
 
-},{"./frame.js":6}],8:[function(require,module,exports){
+},{"./frame.js":7}],9:[function(require,module,exports){
 (function () {
     "use strict";
 
@@ -42062,6 +42379,7 @@ module.exports = (function () {
         Node = require("./node"),
         Edge = require("./edge"),
         Graph = require("./graph"),
+        Agent = require("./agent"),
         nonew = require("nonew");
 
     window.G = window.Graphosaurus = {
@@ -42076,10 +42394,13 @@ module.exports = (function () {
 
         Graph: Graph,
         graph: nonew(Graph),
+
+        Agent: Agent,
+        agent: nonew(Agent),
     };
 }());
 
-},{"./edge":5,"./frame":6,"./graph":7,"./node":9,"nonew":1}],9:[function(require,module,exports){
+},{"./agent":5,"./edge":6,"./frame":7,"./graph":8,"./node":10,"nonew":1}],10:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -42115,6 +42436,9 @@ module.exports = (function () {
 
         var id = properties.id !== undefined ? properties.id : null;
         this._id = id;
+
+        // Store custom data properties
+        this.data = properties.data || {};
 
         return this;
     };
@@ -42192,4 +42516,4 @@ module.exports = (function () {
     return Node;
 }());
 
-},{"three":4}]},{},[5,6,7,8,9]);
+},{"three":4}]},{},[5,6,7,8,9,10]);

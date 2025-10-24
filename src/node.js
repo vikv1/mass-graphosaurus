@@ -34,6 +34,9 @@ module.exports = (function () {
         var id = properties.id !== undefined ? properties.id : null;
         this._id = id;
 
+        // Store custom data properties
+        this.data = properties.data || {};
+
         return this;
     };
 

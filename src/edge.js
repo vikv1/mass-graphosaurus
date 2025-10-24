@@ -30,6 +30,9 @@ module.exports = (function () {
         var color = properties.color || "white";
         this._color = new THREE.Color(color);
 
+        // Store custom data properties
+        this.data = properties.data || {};
+
         return this;
     };
 
