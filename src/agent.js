@@ -21,6 +21,7 @@ module.exports = (function () {
         this._progress = 0;
         this._speed = 1;
         this._active = true;
+        this.id = null;
         this._initProps(props);
     };
 

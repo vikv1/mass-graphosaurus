@@ -41409,6 +41409,7 @@ module.exports = (function () {
         this._progress = 0;
         this._speed = 1;
         this._active = true;
+        this.id = null;
         this._initProps(props);
     };
 
@@ -42140,6 +42141,7 @@ module.exports = (function () {
         this._agents = [];
         this._frames = [];
         this._autoRender = true;
+        this._messageHandlers = {};
         this._initProps(props);
     };
 
@@ -42368,10 +42370,158 @@ module.exports = (function () {
         return this;
     };
 
+    /**
+     * Register a message handler for specific message types
+     * @param {String} messageType - Type of message to handle
+     * @param {Function} handler - Function to handle the message
+     */
+    Graph.prototype.onMessage = function (messageType, handler) {
+        if (!this._messageHandlers[messageType]) {
+            this._messageHandlers[messageType] = [];
+        }
+        this._messageHandlers[messageType].push(handler);
+        return this;
+    };
+
+    /**
+     * Remove a message handler
+     * @param {String} messageType - Type of message
+     * @param {Function} handler - Handler function to remove
+     */
+    Graph.prototype.offMessage = function (messageType, handler) {
+        if (this._messageHandlers[messageType]) {
+            var index = this._messageHandlers[messageType].indexOf(handler);
+            if (index !== -1) {
+                this._messageHandlers[messageType].splice(index, 1);
+            }
+        }
+        return this;
+    };
+
+    /**
+     * Send a message to the graph (triggers registered handlers)
+     * @param {Object} message - Message object with at least a 'type' property
+     */
+    Graph.prototype.handleMessage = function (message) {
+        var messageType = message.type;
+        
+        if (!messageType) {
+            return this;
+        }
+
+        // Call all registered handlers for this message type
+        if (this._messageHandlers[messageType]) {
+            this._messageHandlers[messageType].forEach(function (handler) {
+                handler.call(this, message);
+            }, this);
+        }
+
+        // Built-in message handlers
+        if (messageType === 'spawn_agent') {
+            this._handleSpawnAgent(message);
+        } else if (messageType === 'move_agent') {
+            this._handleMoveAgent(message);
+        } else if (messageType === 'remove_agent') {
+            this._handleRemoveAgent(message);
+        }
+
+        return this;
+    };
+
+    /**
+     * Built-in handler for spawning agents
+     * @private
+     */
+    Graph.prototype._handleSpawnAgent = function (message) {
+        var Agent = require('./agent');
+        
+        var nodeId = message.nodeId || message.node_id;
+        var startNode = nodeId ? this.node(nodeId) : null;
+        
+        if (!startNode && this._nodes.length > 0) {
+            startNode = this._nodes[0];
+        }
+        
+        if (!startNode) {
+            return;
+        }
+
+        var agent = new Agent(startNode, {
+            color: message.color || 0xFFFF00,
+            size: message.size || 20,
+            shape: message.shape || 'sphere',
+            data: message.data || {}
+        });
+
+        if (message.id || message.agentId) {
+            agent.id = message.id || message.agentId;
+        }
+
+        this.addAgent(agent);
+
+        // Auto-move if target specified
+        if (message.targetNodeId || message.target_node_id) {
+            var targetNode = this.node(message.targetNodeId || message.target_node_id);
+            if (targetNode) {
+                agent.moveTo(targetNode, message.speed || 1);
+            }
+        }
+    };
+
+    /**
+     * Built-in handler for moving agents
+     * @private
+     */
+    Graph.prototype._handleMoveAgent = function (message) {
+        var agentId = message.agentId || message.agent_id || message.id;
+        var targetNodeId = message.targetNodeId || message.target_node_id;
+        
+        if (!agentId || !targetNodeId) {
+            return;
+        }
+
+        var agent = this._findAgentById(agentId);
+        var targetNode = this.node(targetNodeId);
+
+        if (agent && targetNode) {
+            agent.moveTo(targetNode, message.speed || 1);
+        }
+    };
+
+    /**
+     * Built-in handler for removing agents
+     * @private
+     */
+    Graph.prototype._handleRemoveAgent = function (message) {
+        var agentId = message.agentId || message.agent_id || message.id;
+        
+        if (!agentId) {
+            return;
+        }
+
+        var agent = this._findAgentById(agentId);
+        if (agent) {
+            this.removeAgent(agent);
+        }
+    };
+
+    /**
+     * Find an agent by ID
+     * @private
+     */
+    Graph.prototype._findAgentById = function (agentId) {
+        for (var i = 0; i < this._agents.length; i++) {
+            if (this._agents[i].id === agentId) {
+                return this._agents[i];
+            }
+        }
+        return null;
+    };
+
     return Graph;
 }());
 
-},{"./frame.js":7}],9:[function(require,module,exports){
+},{"./agent":5,"./frame.js":7}],9:[function(require,module,exports){
 (function () {
     "use strict";
 
