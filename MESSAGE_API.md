@@ -1,6 +1,6 @@
 # Message-Driven Agent Control API
 
-Graphosaurus now supports message-driven agent control, allowing you to spawn and control agents from any external source: WebSockets, REST APIs, message queues, or manual triggers.
+Graphosaurus now supports message-driven agent control, allowing you to spawn and control agents from WebSockets.
 
 ## Quick Start
 
