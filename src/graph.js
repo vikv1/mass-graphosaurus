@@ -311,6 +311,10 @@ module.exports = (function () {
             this._handleMoveAgent(message);
         } else if (messageType === 'remove_agent') {
             this._handleRemoveAgent(message);
+        } else if (messageType === 'add_node') {
+            this._handleAddNode(message);
+        } else if (messageType === 'add_edge') {
+            this._handleAddEdge(message);
         }
 
         return this;
@@ -404,6 +408,62 @@ module.exports = (function () {
             }
         }
         return null;
+    };
+
+    /**
+     * Built-in handler for adding nodes dynamically
+     * @private
+     */
+    Graph.prototype._handleAddNode = function (message) {
+        var Node = require('./node');
+        
+        var nodeId = message.id || message.nodeId;
+        
+        // Check if node already exists
+        if (nodeId && this.node(nodeId)) {
+            return;
+        }
+        
+        var position = message.position || [0, 0, 0];
+        var color = message.color || 0x888888;
+        
+        var node = new Node(position, {
+            color: color,
+            id: nodeId,
+            data: message.data || {}
+        });
+        
+        this.addNode(node);
+    };
+
+    /**
+     * Built-in handler for adding edges dynamically
+     * @private
+     */
+    Graph.prototype._handleAddEdge = function (message) {
+        var Edge = require('./edge');
+        
+        var fromNodeId = message.fromNodeId || message.from_node_id;
+        var toNodeId = message.toNodeId || message.to_node_id;
+        
+        if (!fromNodeId || !toNodeId) {
+            return;
+        }
+        
+        var fromNode = this.node(fromNodeId);
+        var toNode = this.node(toNodeId);
+        
+        if (!fromNode || !toNode) {
+            return;
+        }
+        
+        var color = message.color || 0xCCCCCC;
+        
+        var edge = new Edge([fromNode, toNode], {
+            color: color
+        });
+        
+        this.addEdge(edge);
     };
 
     return Graph;

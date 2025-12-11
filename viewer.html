@@ -264,7 +264,7 @@
     function initGraph() {
       graph = G.graph({
         antialias: true,
-        bgColor: 0xffffff,
+        bgColor: 0x1a1a2e,
         edgeWidth: 2,
         nodeSize: 15
       });
@@ -274,50 +274,9 @@
         logMessage('Custom event received: ' + JSON.stringify(message.data));
       });
 
-      // Build network
-      var centerNode = G.node([0, 0, 0], {
-        color: 0xff0000,
-        id: 'center',
-        data: { name: "Central Hub" }
-      });
-      centerNode.addTo(graph);
-      nodes.push(centerNode);
-
-      // Create ring of nodes
-      var numNodes = 8;
-      var radius = 2;
-      for (var i = 0; i < numNodes; i++) {
-        var angle = (i / numNodes) * Math.PI * 2;
-        var x = Math.cos(angle) * radius;
-        var y = Math.sin(angle) * radius;
-        var z = Math.sin(angle * 2) * 0.5;
-        
-        var node = G.node([x, y, z], {
-          color: Math.floor(Math.random() * 0xffffff),
-          id: 'node-' + i,
-          data: { name: 'Node ' + i }
-        });
-        
-        node.addTo(graph);
-        nodes.push(node);
-        
-        G.edge([centerNode, node], {
-          color: 0x999999
-        }).addTo(graph);
-        
-        if (i > 0) {
-          G.edge([nodes[i], node], {
-            color: 0xcccccc
-          }).addTo(graph);
-        }
-      }
-
-      G.edge([nodes[numNodes], nodes[1]], {
-        color: 0xcccccc
-      }).addTo(graph);
-
+      // Start with empty graph - nodes and edges will be added via WebSocket messages
       graph.renderIn("graph");
-      logMessage('Graph initialized with ' + nodes.length + ' nodes');
+      logMessage('Empty graph initialized - waiting for data from MASS Java...');
     }
 
     // Send message via WebSocket or HTTP
