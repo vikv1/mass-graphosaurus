@@ -411,6 +411,26 @@ module.exports = (function () {
     };
 
     /**
+     * Generate a random position within a sphere
+     * @private
+     * @param {Number} radius - Radius of the sphere
+     * @returns {Array} [x, y, z] position
+     */
+    Graph.prototype._randomSpherePosition = function (radius) {
+        radius = radius || 10;
+        // Spherical coordinates for uniform distribution
+        var theta = Math.random() * Math.PI * 2;  // azimuthal angle
+        var phi = Math.acos(2 * Math.random() - 1);  // polar angle
+        var r = Math.cbrt(Math.random()) * radius;  // cube root for uniform volume distribution
+        
+        return [
+            r * Math.sin(phi) * Math.cos(theta),
+            r * Math.sin(phi) * Math.sin(theta),
+            r * Math.cos(phi)
+        ];
+    };
+
+    /**
      * Built-in handler for adding nodes dynamically
      * @private
      */
@@ -424,7 +444,12 @@ module.exports = (function () {
             return;
         }
         
-        var position = message.position || [0, 0, 0];
+        // Use provided position, or generate random spherical position
+        var position = message.position;
+        if (!position) {
+            var radius = message.radius || 10;
+            position = this._randomSpherePosition(radius);
+        }
         var color = message.color || 0x888888;
         
         var node = new Node(position, {

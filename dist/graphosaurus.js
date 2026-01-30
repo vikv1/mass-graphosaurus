@@ -41990,15 +41990,23 @@ module.exports = (function () {
     };
 
     Frame.prototype._updateCameraBounds = (function () {
-        var prevCameraPos;
+        var prevCameraPos = null;
+        var threshold = 0.0001; // Movement threshold to trigger update
+        
         return function () {
-            // TODO: this shouldn't update every frame
-            // TODO: is this still even necessary now that we scale?
             var cameraPos = this.camera.position;
 
-            if (cameraPos === prevCameraPos) { return; }
+            // Skip if camera hasn't moved significantly
+            if (prevCameraPos && 
+                Math.abs(cameraPos.x - prevCameraPos.x) < threshold &&
+                Math.abs(cameraPos.y - prevCameraPos.y) < threshold &&
+                Math.abs(cameraPos.z - prevCameraPos.z) < threshold) {
+                return false; // Return false to indicate no update needed
+            }
 
             var boundingSphere = this.points.boundingSphere;
+            if (!boundingSphere) { return false; }
+            
             var distance = boundingSphere.distanceToPoint(cameraPos);
 
             if (distance > 0) {
@@ -42008,6 +42016,7 @@ module.exports = (function () {
             }
 
             prevCameraPos = cameraPos.clone();
+            return true; // Return true to indicate camera moved
         };
     }());
 
@@ -42084,7 +42093,9 @@ module.exports = (function () {
 
     Frame.prototype._animate = function () {
         var self = this,
-            sorter = new BufferGeometrySorter(5);
+            sorter = new BufferGeometrySorter(5),
+            sortFrameCounter = 0,
+            sortInterval = 3; // Only sort every N frames when camera is moving
 
         // Update near/far camera range
         (function animate() {
@@ -42092,9 +42103,17 @@ module.exports = (function () {
             var deltaTime = (currentTime - self.lastFrameTime) / 1000; // Convert to seconds
             self.lastFrameTime = currentTime;
 
-            self._updateCameraBounds();
+            var cameraMoved = self._updateCameraBounds();
             var agentsNeedRender = self._updateAgents(deltaTime);
-            sorter.sort(self.points.attributes, self.controls.object.position);
+            
+            // Only sort when camera moves, and throttle to every N frames
+            if (cameraMoved) {
+                sortFrameCounter++;
+                if (sortFrameCounter >= sortInterval) {
+                    sorter.sort(self.points.attributes, self.controls.object.position);
+                    sortFrameCounter = 0;
+                }
+            }
 
             // Force re-render if agents are moving
             if (agentsNeedRender) {
@@ -42523,6 +42542,26 @@ module.exports = (function () {
     };
 
     /**
+     * Generate a random position within a sphere
+     * @private
+     * @param {Number} radius - Radius of the sphere
+     * @returns {Array} [x, y, z] position
+     */
+    Graph.prototype._randomSpherePosition = function (radius) {
+        radius = radius || 10;
+        // Spherical coordinates for uniform distribution
+        var theta = Math.random() * Math.PI * 2;  // azimuthal angle
+        var phi = Math.acos(2 * Math.random() - 1);  // polar angle
+        var r = Math.cbrt(Math.random()) * radius;  // cube root for uniform volume distribution
+        
+        return [
+            r * Math.sin(phi) * Math.cos(theta),
+            r * Math.sin(phi) * Math.sin(theta),
+            r * Math.cos(phi)
+        ];
+    };
+
+    /**
      * Built-in handler for adding nodes dynamically
      * @private
      */
@@ -42536,7 +42575,12 @@ module.exports = (function () {
             return;
         }
         
-        var position = message.position || [0, 0, 0];
+        // Use provided position, or generate random spherical position
+        var position = message.position;
+        if (!position) {
+            var radius = message.radius || 10;
+            position = this._randomSpherePosition(radius);
+        }
         var color = message.color || 0x888888;
         
         var node = new Node(position, {
