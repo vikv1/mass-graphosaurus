@@ -41939,7 +41939,8 @@ module.exports = (function () {
                 
                 // Check edges if enabled
                 if (includeEdges) {
-                    raycaster.params.Line.threshold = 0.02;
+                    // Use a larger threshold for easier edge selection
+                    raycaster.params.Line.threshold = threshold * 0.5;
                     var edgeIntersects = raycaster.intersectObject(self.line);
                     if (edgeIntersects.length) {
                         var edgeIndex = Math.floor(edgeIntersects[0].index / 2);
@@ -42616,7 +42617,8 @@ module.exports = (function () {
         var color = message.color || 0xCCCCCC;
         
         var edge = new Edge([fromNode, toNode], {
-            color: color
+            color: color,
+            data: message.data || {}
         });
         
         this.addEdge(edge);

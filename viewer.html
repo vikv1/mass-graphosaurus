@@ -180,6 +180,314 @@
     .example-code:hover {
       background: #e8e8e8;
     }
+
+    /* Popup Modal Styles */
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .popup-overlay.active {
+      display: flex !important;
+    }
+
+    .popup-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 90%;
+      position: relative;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+
+    .popup-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin: 0;
+    }
+
+    .popup-close {
+      background-color: #ff4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 20px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .popup-close:hover {
+      background-color: #cc0000;
+    }
+
+    .popup-body {
+      margin-top: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .property-row {
+      display: flex;
+      margin-bottom: 12px;
+      padding: 8px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+    }
+
+    .property-label {
+      font-weight: bold;
+      color: #555;
+      min-width: 140px;
+      margin-right: 10px;
+    }
+
+    .property-value {
+      color: #333;
+      word-break: break-all;
+    }
+
+    .color-preview {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+
+    .label-tag {
+      display: inline-block;
+      background-color: #4CAF50;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+
+    .relationship-tag {
+      display: inline-block;
+      background-color: #2196F3;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-right: 5px;
+    }
+
+    /* List View Modal Styles */
+    .list-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .list-modal-overlay.active {
+      display: flex !important;
+    }
+
+    .list-modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      width: 90%;
+      max-width: 800px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .list-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+
+    .list-modal-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      margin: 0;
+    }
+
+    .list-search-container {
+      margin-bottom: 15px;
+    }
+
+    .list-search-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .list-search-input:focus {
+      border-color: #4CAF50;
+      outline: none;
+    }
+
+    .list-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .list-tab {
+      padding: 8px 20px;
+      border: none;
+      background: #f0f0f0;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .list-tab.active {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .list-tab:hover:not(.active) {
+      background: #e0e0e0;
+    }
+
+    .list-container {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .list-item {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .list-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .list-item-main {
+      flex: 1;
+    }
+
+    .list-item-title {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .list-item-subtitle {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .list-item-badge {
+      background: #4CAF50;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      margin-left: 5px;
+    }
+
+    .list-item-badge.edge {
+      background: #2196F3;
+    }
+
+    .list-empty {
+      padding: 40px;
+      text-align: center;
+      color: #999;
+    }
+
+    .list-stats {
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .toggle-list-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 15px 25px;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 100;
+      transition: all 0.2s;
+    }
+
+    .toggle-list-btn:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body>
@@ -189,6 +497,7 @@
       <p>Update the graph with messages over either HTTP or WebSockets</p>
       <p style="color: #ff6b6b; font-weight: bold;">⚠️ Server Required: Run <code>npm run server</code> in terminal</p>
       <p style="color: #4CAF50; font-size: 14px;">💡 WebSocket will auto-connect. All clients see the same agents in real-time</p>
+      <p style="font-weight: bold;">Click on nodes and edges to see their properties!</p>
     </div>
 
     <div class="split-view">
@@ -230,6 +539,44 @@
     </div>
   </div>
 
+  <!-- Popup Modal for Node/Edge Properties -->
+  <div id="popup" class="popup-overlay">
+    <div class="popup-content">
+      <div class="popup-header">
+        <h2 class="popup-title" id="popup-title">Properties</h2>
+        <button class="popup-close" onclick="closePopup()">&times;</button>
+      </div>
+      <div class="popup-body" id="popup-body">
+        <!-- Properties will be inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- List View Modal -->
+  <div id="listModal" class="list-modal-overlay">
+    <div class="list-modal-content">
+      <div class="list-modal-header">
+        <h2 class="list-modal-title">Graph Elements</h2>
+        <button class="popup-close" onclick="closeListModal()">&times;</button>
+      </div>
+      <div class="list-search-container">
+        <input type="text" id="listSearch" class="list-search-input" placeholder="Search nodes and edges..." oninput="filterList()">
+      </div>
+      <div class="list-stats" id="listStats">Loading...</div>
+      <div class="list-tabs">
+        <button class="list-tab active" id="tabAll" onclick="switchTab('all')">All</button>
+        <button class="list-tab" id="tabNodes" onclick="switchTab('nodes')">Nodes</button>
+        <button class="list-tab" id="tabEdges" onclick="switchTab('edges')">Edges</button>
+      </div>
+      <div class="list-container" id="listContainer">
+        <!-- List items will be inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating button to open list view -->
+  <button class="toggle-list-btn" onclick="openListModal()">📋 View All Elements</button>
+
   <script src="dist/graphosaurus.js"></script>
   <script>
     var graph, nodes = [], websocket = null, simInterval = null;
@@ -260,13 +607,295 @@
       document.getElementById('messageInput').value = JSON.stringify(examples[index], null, 2);
     }
 
+    // Popup functions
+    function showNodePopup(node) {
+      var popup = document.getElementById('popup');
+      var popupTitle = document.getElementById('popup-title');
+      var popupBody = document.getElementById('popup-body');
+      
+      var data = node.data || {};
+      var position = node._pos;
+      var colorHex = '#' + node.color();
+      
+      var html = '';
+      
+      // Show ID first
+      if (node.id()) {
+        html += '<div class="property-row"><span class="property-label">ID:</span><span class="property-value">' + node.id() + '</span></div>';
+      }
+      
+      // Show labels if present
+      if (data.labels && Array.isArray(data.labels)) {
+        html += '<div class="property-row"><span class="property-label">Labels:</span><span class="property-value">';
+        data.labels.forEach(function(label) {
+          html += '<span class="label-tag">' + label + '</span>';
+        });
+        html += '</span></div>';
+      } else if (data.labelString) {
+        html += '<div class="property-row"><span class="property-label">Labels:</span><span class="property-value">' + data.labelString + '</span></div>';
+      }
+      
+      // Display custom data properties (skip internal ones)
+      var skipKeys = ['labels', 'labelString', 'type', 'vertexId'];
+      for (var key in data) {
+        if (data.hasOwnProperty(key) && skipKeys.indexOf(key) === -1) {
+          html += '<div class="property-row"><span class="property-label">' + key + ':</span><span class="property-value">' + data[key] + '</span></div>';
+        }
+      }
+      
+      // Add position
+      html += '<div class="property-row"><span class="property-label">Position:</span><span class="property-value">x: ' + position.x.toFixed(2) + ', y: ' + position.y.toFixed(2) + ', z: ' + position.z.toFixed(2) + '</span></div>';
+      
+      // Add color
+      html += '<div class="property-row"><span class="property-label">Color:</span><span class="property-value">' + colorHex + '<span class="color-preview" style="background-color: ' + colorHex + ';"></span></span></div>';
+      
+      popupTitle.textContent = data.type === 'PropertyVertex' ? 'Property Node' : 'Node';
+      popupBody.innerHTML = html;
+      popup.classList.add('active');
+      
+      logMessage('Clicked node: ' + (node.id() || 'unknown'));
+    }
+    
+    function showEdgePopup(edge) {
+      var popup = document.getElementById('popup');
+      var popupTitle = document.getElementById('popup-title');
+      var popupBody = document.getElementById('popup-body');
+      
+      var data = edge.data || {};
+      var nodes = edge.nodes();
+      var colorHex = '#' + edge.color();
+      
+      var html = '';
+      
+      // Show connected nodes
+      var fromName = nodes[0].data && nodes[0].data.name ? nodes[0].data.name : (nodes[0].id() || 'Node');
+      var toName = nodes[1].data && nodes[1].data.name ? nodes[1].data.name : (nodes[1].id() || 'Node');
+      html += '<div class="property-row"><span class="property-label">From:</span><span class="property-value">' + fromName + '</span></div>';
+      html += '<div class="property-row"><span class="property-label">To:</span><span class="property-value">' + toName + '</span></div>';
+      
+      // Show relationship types if present
+      if (data.relationshipTypes && Array.isArray(data.relationshipTypes)) {
+        html += '<div class="property-row"><span class="property-label">Relationship:</span><span class="property-value">';
+        data.relationshipTypes.forEach(function(type) {
+          html += '<span class="relationship-tag">' + type + '</span>';
+        });
+        html += '</span></div>';
+      } else if (data.relationship) {
+        html += '<div class="property-row"><span class="property-label">Relationship:</span><span class="property-value"><span class="relationship-tag">' + data.relationship + '</span></span></div>';
+      }
+      
+      // Display custom data properties (skip internal ones)
+      var skipKeys = ['relationshipTypes', 'relationship', 'type'];
+      for (var key in data) {
+        if (data.hasOwnProperty(key) && skipKeys.indexOf(key) === -1) {
+          html += '<div class="property-row"><span class="property-label">' + key + ':</span><span class="property-value">' + data[key] + '</span></div>';
+        }
+      }
+      
+      // Add color
+      html += '<div class="property-row"><span class="property-label">Color:</span><span class="property-value">' + colorHex + '<span class="color-preview" style="background-color: ' + colorHex + ';"></span></span></div>';
+      
+      popupTitle.textContent = data.type === 'PropertyEdge' ? 'Property Edge' : 'Edge';
+      popupBody.innerHTML = html;
+      popup.classList.add('active');
+      
+      logMessage('Clicked edge: ' + fromName + ' -> ' + toName);
+    }
+    
+    function closePopup() {
+      var popup = document.getElementById('popup');
+      popup.classList.remove('active');
+    }
+    
+    // Close popup when clicking outside
+    document.getElementById('popup').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closePopup();
+      }
+    });
+
+    // Close list modal when clicking outside
+    document.getElementById('listModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeListModal();
+      }
+    });
+
+    // List Modal Functions
+    var currentTab = 'all';
+
+    function openListModal() {
+      var modal = document.getElementById('listModal');
+      modal.classList.add('active');
+      updateListStats();
+      renderList();
+      logMessage('Opened element list view');
+    }
+
+    function closeListModal() {
+      var modal = document.getElementById('listModal');
+      modal.classList.remove('active');
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      // Update tab buttons
+      document.getElementById('tabAll').classList.toggle('active', tab === 'all');
+      document.getElementById('tabNodes').classList.toggle('active', tab === 'nodes');
+      document.getElementById('tabEdges').classList.toggle('active', tab === 'edges');
+      
+      renderList();
+    }
+
+    function updateListStats() {
+      var nodes = graph ? graph.nodes() : [];
+      var edges = graph ? graph.edges() : [];
+      var statsEl = document.getElementById('listStats');
+      statsEl.textContent = 'Total: ' + nodes.length + ' nodes, ' + edges.length + ' edges';
+    }
+
+    function filterList() {
+      renderList();
+    }
+
+    function renderList() {
+      var container = document.getElementById('listContainer');
+      var searchTerm = document.getElementById('listSearch').value.toLowerCase();
+      var nodes = graph ? graph.nodes() : [];
+      var edges = graph ? graph.edges() : [];
+      
+      var html = '';
+      var matchCount = 0;
+      
+      // Render nodes
+      if (currentTab === 'all' || currentTab === 'nodes') {
+        nodes.forEach(function(node, index) {
+          var data = node.data || {};
+          var id = node.id() || 'node-' + index;
+          var name = data.name || id;
+          var labels = data.labels || data.labelString || '';
+          var labelsStr = Array.isArray(labels) ? labels.join(', ') : labels;
+          
+          // Build searchable text
+          var searchText = (name + ' ' + id + ' ' + labelsStr + ' ' + JSON.stringify(data)).toLowerCase();
+          
+          if (searchTerm && searchText.indexOf(searchTerm) === -1) {
+            return;
+          }
+          
+          matchCount++;
+          
+          html += '<div class="list-item" onclick="selectNodeFromList(' + index + ')">';
+          html += '  <div class="list-item-main">';
+          html += '    <div class="list-item-title">' + escapeHtml(name) + '<span class="list-item-badge">Node</span></div>';
+          html += '    <div class="list-item-subtitle">';
+          if (labelsStr) {
+            html += 'Labels: ' + escapeHtml(labelsStr);
+          } else {
+            html += 'ID: ' + escapeHtml(id);
+          }
+          html += '    </div>';
+          html += '  </div>';
+          html += '</div>';
+        });
+      }
+      
+      // Render edges
+      if (currentTab === 'all' || currentTab === 'edges') {
+        edges.forEach(function(edge, index) {
+          var data = edge.data || {};
+          var edgeNodes = edge.nodes();
+          var fromNode = edgeNodes[0];
+          var toNode = edgeNodes[1];
+          
+          var fromName = (fromNode.data && fromNode.data.name) || fromNode.id() || 'Node';
+          var toName = (toNode.data && toNode.data.name) || toNode.id() || 'Node';
+          var relationship = data.relationship || data.relationshipTypes || '';
+          var relStr = Array.isArray(relationship) ? relationship.join(', ') : relationship;
+          
+          // Build searchable text
+          var searchText = (fromName + ' ' + toName + ' ' + relStr + ' ' + JSON.stringify(data)).toLowerCase();
+          
+          if (searchTerm && searchText.indexOf(searchTerm) === -1) {
+            return;
+          }
+          
+          matchCount++;
+          
+          html += '<div class="list-item" onclick="selectEdgeFromList(' + index + ')">';
+          html += '  <div class="list-item-main">';
+          html += '    <div class="list-item-title">' + escapeHtml(fromName) + ' → ' + escapeHtml(toName) + '<span class="list-item-badge edge">Edge</span></div>';
+          html += '    <div class="list-item-subtitle">';
+          if (relStr) {
+            html += 'Relationship: ' + escapeHtml(relStr);
+          } else {
+            html += 'Connection';
+          }
+          html += '    </div>';
+          html += '  </div>';
+          html += '</div>';
+        });
+      }
+      
+      if (matchCount === 0) {
+        if (searchTerm) {
+          html = '<div class="list-empty">No matches found for "' + escapeHtml(searchTerm) + '"</div>';
+        } else {
+          html = '<div class="list-empty">No elements in the graph yet.<br>Run a test to populate the graph.</div>';
+        }
+      }
+      
+      container.innerHTML = html;
+      
+      // Update stats with filter info
+      var statsEl = document.getElementById('listStats');
+      var totalNodes = nodes.length;
+      var totalEdges = edges.length;
+      if (searchTerm) {
+        statsEl.textContent = 'Showing ' + matchCount + ' matches (Total: ' + totalNodes + ' nodes, ' + totalEdges + ' edges)';
+      } else {
+        statsEl.textContent = 'Total: ' + totalNodes + ' nodes, ' + totalEdges + ' edges';
+      }
+    }
+
+    function selectNodeFromList(index) {
+      var nodes = graph.nodes();
+      if (index < nodes.length) {
+        closeListModal();
+        showNodePopup(nodes[index]);
+      }
+    }
+
+    function selectEdgeFromList(index) {
+      var edges = graph.edges();
+      if (index < edges.length) {
+        closeListModal();
+        showEdgePopup(edges[index]);
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     // Initialize graph
     function initGraph() {
       graph = G.graph({
         antialias: true,
         bgColor: 0x1a1a2e,
         edgeWidth: 2,
-        nodeSize: 15
+        nodeSize: 15,
+        click: function(event) {
+          if (event.type === 'node') {
+            showNodePopup(event.node);
+          } else if (event.type === 'edge') {
+            showEdgePopup(event.edge);
+          }
+        }
       });
 
       // Register custom message handlers
@@ -277,6 +906,7 @@
       // Start with empty graph - nodes and edges will be added via WebSocket messages
       graph.renderIn("graph");
       logMessage('Empty graph initialized - waiting for data from MASS Java...');
+      logMessage('Click on nodes and edges to view their properties!');
     }
 
     // Send message via WebSocket or HTTP

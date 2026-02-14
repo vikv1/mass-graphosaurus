@@ -485,7 +485,8 @@ module.exports = (function () {
         var color = message.color || 0xCCCCCC;
         
         var edge = new Edge([fromNode, toNode], {
-            color: color
+            color: color,
+            data: message.data || {}
         });
         
         this.addEdge(edge);
