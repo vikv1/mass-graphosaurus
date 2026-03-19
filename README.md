@@ -1,96 +1,213 @@
-# Graphosaurus
+# Graphosaurus for MASS
 
-[![Build Status](https://travis-ci.org/frewsxcv/graphosaurus.svg)](https://travis-ci.org/frewsxcv/graphosaurus)
-[![npm version](https://badge.fury.io/js/graphosaurus.svg)](http://badge.fury.io/js/graphosaurus)
+This project is the WebSocket-driven 3D visualizer used by MASS graph simulations.
+It receives graph and agent messages (nodes, edges, spawn/move/remove) and renders them in real time.
 
-A three-dimensional static graph viewer.
+Use this document as the source of truth for running the visualizer with current MASS Graphosaurus integration.
 
-[![](http://i.imgur.com/qu7w99a.gif)](https://frewsxcv.github.io/graphosaurus/examples/eve-universe/index.html)
+## What This Supports
 
-*(click the image to try it out)*
+- Real-time graph updates from MASS over WebSocket
+- Agent movement visualization (`spawn_agent`, `move_agent`, `remove_agent`)
+- Incremental graph reveal (partial loading mode)
+- Property graph metadata display (labels/properties on nodes and edges)
+- Agent list/history synchronization via `agent_list`
 
-## Demos
+## Prerequisites
 
-* [EVE Online map](https://frewsxcv.github.io/graphosaurus/examples/eve-universe/index.html)
-* [Add nodes incrementally](https://frewsxcv.github.io/graphosaurus/examples/incremental/index.html)
+- Node.js + npm
+- MASS application built and runnable
 
-## Documentation
+## 1) Start Graphosaurus
 
-JSDoc generated API documentation can be found [here](https://frewsxcv.github.io/graphosaurus/doc/).
+From this directory:
 
-## Twenty second tutorial
+```bash
+npm install
+npm run build
+npm run server
+```
 
-```html
-<html>
-  <head>
-    <style>
-    #graph {
-      width: 500px;
-      height: 500px;
-      border: 1px solid grey;
+Server defaults:
+
+- HTTP: `http://localhost:8080`
+- WebSocket: `ws://localhost:8080`
+- Health check: `http://localhost:8080/health`
+
+## 2) Open the Visualizer UI
+
+Open:
+
+- `viewer.html`
+
+The viewer auto-connects to `ws://localhost:8080` and logs incoming messages.
+
+## 3) Enable from MASS
+
+You can enable visualization through system properties (recommended) or API calls.
+
+### Option A: system properties (recommended)
+
+Add JVM properties when starting MASS:
+
+```text
+-Dgraphosaurus.enabled=true
+-Dgraphosaurus.websocket.url=ws://localhost:8080
+-Dgraphosaurus.poll.interval=500
+-Dgraphosaurus.partial.loading=false
+```
+
+### Option B: API calls in code
+
+```java
+graph.enableGraphosaurusVisualization("ws://localhost:8080", 500, false);
+```
+
+Disable at runtime:
+
+```java
+graph.disableGraphosaurusVisualization();
+```
+
+## Runtime Modes
+
+### Full graph mode
+
+- `graphosaurus.partial.loading=false`
+- MASS sends complete graph structure, then agent updates.
+
+### Partial loading mode
+
+- `graphosaurus.partial.loading=true`
+- MASS only sends nodes/edges as agents visit them.
+- Best for very large graphs where full upfront transfer is expensive.
+
+## Important Runtime Properties (MASS Side)
+
+The following properties are read by the MASS listener integration:
+
+- `graphosaurus.enabled` (default `false`)
+- `graphosaurus.websocket.url` (default `ws://localhost:8080`)
+- `graphosaurus.poll.interval` (default `500`)
+- `graphosaurus.partial.loading` (default `false`)
+- `graphosaurus.poll.global` (default `false`)
+  - `false`: poll local places (lower overhead, recommended default)
+  - `true`: poll full distributed graph every cycle
+- `graphosaurus.queue.max` (default `20000`)
+  - max buffered outbound messages before dropping oldest
+- `graphosaurus.resync.on.reconnect` (default `true`)
+  - resend graph/agent state after WebSocket reconnect
+- `graphosaurus.sync.delay.ms` (default `1000`)
+  - delay before reconnect resync starts
+
+## Message Contract Used by MASS
+
+The viewer handles these message types:
+
+- `add_node`
+- `add_edge`
+- `spawn_agent`
+- `move_agent`
+- `remove_agent`
+- `agent_list` (used by viewer side panel/state sync)
+
+Representative payloads:
+
+```json
+{
+  "type": "add_node",
+  "id": "node-1",
+  "color": 8947848,
+  "position": [0.0, 0.0, 0.0],
+  "data": { "name": "Node 1" }
+}
+```
+
+```json
+{
+  "type": "add_edge",
+  "fromNodeId": "node-1",
+  "toNodeId": "node-2",
+  "color": 13421772,
+  "data": { "relationship": "KNOWS" }
+}
+```
+
+```json
+{
+  "type": "spawn_agent",
+  "nodeId": "node-1",
+  "id": "agent-7",
+  "color": 16776960,
+  "shape": "sphere",
+  "data": { "agentId": 7 }
+}
+```
+
+```json
+{
+  "type": "move_agent",
+  "agentId": "agent-7",
+  "targetNodeId": "node-2",
+  "speed": 1.0
+}
+```
+
+```json
+{
+  "type": "remove_agent",
+  "agentId": "agent-7"
+}
+```
+
+```json
+{
+  "type": "agent_list",
+  "agents": [
+    {
+      "id": "agent-7",
+      "currentNode": "node-2",
+      "color": 16776960,
+      "visitHistory": ["node-1", "node-2"],
+      "removed": false
     }
-    </style>
-  </head>
-  <body>
-    <div id="graph"></div>
-
-    <script src="graphosaurus.min.js"></script>
-    <script>
-      // JavaScript will go here
-    </script>
-  </body>
-</html>
+  ]
+}
 ```
 
-If you open this up in your web browser, you'll see something that looks like this:
+## Typical End-to-End Run
 
-![](https://i.imgur.com/LnAvptu.png)
+1. Start Graphosaurus server: `npm run server`
+2. Open `viewer.html`
+3. Start MASS with Graphosaurus enabled properties
+4. Verify:
+   - nodes/edges appear
+   - agents spawn and move
+   - list panel updates with agent history
+5. Stop MASS or call `disableGraphosaurusVisualization()`
 
-Look at that amazing square! Now let's create a graph, a couple nodes, and an edge between the nodes:
+## Troubleshooting
 
-```js
-var graph = G.graph()
+- **Viewer stays empty**
+  - Confirm MASS is started with `-Dgraphosaurus.enabled=true`
+  - Check URL: `graphosaurus.websocket.url` must match server
+  - Verify server health endpoint responds
 
-// Create a red node with cartesian coordinates x=0, y=0, z=0
-var redNode = G.node([0, 0, 0], {color: "red"});
-graph.addNode(redNode);
+- **Agents appear but graph structure is incomplete**
+  - If partial mode is on, this is expected: only visited areas are shown
+  - Turn off partial mode for full upfront graph
 
-// You can also use the addTo method to add to the graph
-var greenNode = G.node([1, 1, 1], {color: "green"}).addTo(graph);
+- **High message volume**
+  - Increase `graphosaurus.queue.max`
+  - Increase `graphosaurus.poll.interval`
+  - Keep `graphosaurus.poll.global=false` unless you specifically need global polling
 
-var edge = G.edge([redNode, greenNode], {color: "blue"});
-graph.addEdge(edge);  // or edge.addTo(graph)
+- **Reconnect happened and state looks stale**
+  - Ensure `graphosaurus.resync.on.reconnect=true` (default)
 
-// Render the graph in the HTML element with id='graph'
-graph.renderIn("graph");
-```
+## Related Files
 
-After inserting this JavaScript in the `<script>` block, you should see this:
-
-![](https://i.imgur.com/0ylXUd6.gif)
-
-While this is a very basic example, I hope I've demonstrated how simple it is to create graphs with Graphosaurus.
-
-## Build
-
-1. Run `git clone https://github.com/frewsxcv/graphosaurus.git` to clone this repository
-1. Install [node](http://nodejs.org/), [npm](https://www.npmjs.org/), and [grunt-cli](https://www.npmjs.org/package/grunt-cli)
-1. Run `npm install` to install all the build requirements
-1. Run `grunt` to build Graphosaurus. The resulting compiled JavaScript will be in `dist/` and the docs will be in `doc/`
-
-## Mascot
-
-![gryposaurus](https://upload.wikimedia.org/wikipedia/commons/7/70/Gryposaurus-notabilis_jconway.png)
-
-[John Conway](https://en.wikipedia.org/wiki/User:John.Conway)'s illustration of our glorious leader, the ~~[gryposaurus](https://en.wikipedia.org/wiki/gryposaurus)~~ graphosaurus.
-
-## Similar projects
-
-* <https://github.com/anvaka/ngraph.pixel>
-* <https://github.com/NLeSC/DiVE>
-
-## Copyright
-
-All files in this repository are licensed under [version two of the Mozilla Public License](https://github.com/frewsxcv/graphosaurus/blob/master/LICENSE.md).
-
-Graphosaurus has some third party dependencies listed in the `package.json` file in the `devDependencies` and `dependencies` sections. Their licenses can be found on their respective project pages.
+- `viewer.html` - main visualizer UI
+- `server.js` - WebSocket/HTTP message relay server
+- `MESSAGE_API.md` - message API details
+- `QUICKSTART.md` - shorter setup guide
