@@ -488,6 +488,74 @@
       background: #45a049;
       transform: translateY(-2px);
     }
+
+    .list-item-badge.agent {
+      background: #FF9800;
+    }
+
+    .agent-color-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .agent-history {
+      margin-top: 6px;
+      padding: 6px 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #555;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .agent-history-step {
+      display: inline-block;
+      background: #e0e0e0;
+      padding: 1px 6px;
+      border-radius: 8px;
+      margin: 2px 2px;
+      font-size: 11px;
+    }
+
+    .agent-history-arrow {
+      color: #999;
+      margin: 0 1px;
+      font-size: 10px;
+    }
+
+    /* Node label overlay */
+    .graph-wrapper {
+      position: relative;
+    }
+
+    #node-labels {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .node-label {
+      position: absolute;
+      color: #fff;
+      font-size: 10px;
+      font-family: 'Courier New', monospace;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 1px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+      transform: translate(-50%, -100%);
+      margin-top: -4px;
+    }
   </style>
 </head>
 <body>
@@ -502,7 +570,10 @@
 
     <div class="split-view">
       <div class="left-panel">
-        <div id="graph"></div>
+        <div class="graph-wrapper">
+          <div id="graph"></div>
+          <div id="node-labels"></div>
+        </div>
       </div>
 
       <div class="right-panel">
@@ -560,13 +631,14 @@
         <button class="popup-close" onclick="closeListModal()">&times;</button>
       </div>
       <div class="list-search-container">
-        <input type="text" id="listSearch" class="list-search-input" placeholder="Search nodes and edges..." oninput="filterList()">
+        <input type="text" id="listSearch" class="list-search-input" placeholder="Search nodes, edges, and agents..." oninput="filterList()">
       </div>
       <div class="list-stats" id="listStats">Loading...</div>
       <div class="list-tabs">
         <button class="list-tab active" id="tabAll" onclick="switchTab('all')">All</button>
         <button class="list-tab" id="tabNodes" onclick="switchTab('nodes')">Nodes</button>
         <button class="list-tab" id="tabEdges" onclick="switchTab('edges')">Edges</button>
+        <button class="list-tab" id="tabAgents" onclick="switchTab('agents')">Agents</button>
       </div>
       <div class="list-container" id="listContainer">
         <!-- List items will be inserted here -->
@@ -579,7 +651,8 @@
 
   <script src="dist/graphosaurus.js"></script>
   <script>
-    var graph, nodes = [], websocket = null, simInterval = null;
+    var graph, graphFrame = null, nodes = [], websocket = null, simInterval = null;
+    var agentData = {}; // agentId -> { id, currentNode, color, visitHistory [] }
 
     // Example messages
     var examples = [
@@ -740,10 +813,10 @@
     function switchTab(tab) {
       currentTab = tab;
       
-      // Update tab buttons
       document.getElementById('tabAll').classList.toggle('active', tab === 'all');
       document.getElementById('tabNodes').classList.toggle('active', tab === 'nodes');
       document.getElementById('tabEdges').classList.toggle('active', tab === 'edges');
+      document.getElementById('tabAgents').classList.toggle('active', tab === 'agents');
       
       renderList();
     }
@@ -751,8 +824,9 @@
     function updateListStats() {
       var nodes = graph ? graph.nodes() : [];
       var edges = graph ? graph.edges() : [];
+      var agentCount = Object.keys(agentData).length;
       var statsEl = document.getElementById('listStats');
-      statsEl.textContent = 'Total: ' + nodes.length + ' nodes, ' + edges.length + ' edges';
+      statsEl.textContent = 'Total: ' + nodes.length + ' nodes, ' + edges.length + ' edges, ' + agentCount + ' agents';
     }
 
     function filterList() {
@@ -762,7 +836,7 @@
     function renderList() {
       var container = document.getElementById('listContainer');
       var searchTerm = document.getElementById('listSearch').value.toLowerCase();
-      var nodes = graph ? graph.nodes() : [];
+      var graphNodes = graph ? graph.nodes() : [];
       var edges = graph ? graph.edges() : [];
       
       var html = '';
@@ -770,14 +844,13 @@
       
       // Render nodes
       if (currentTab === 'all' || currentTab === 'nodes') {
-        nodes.forEach(function(node, index) {
+        graphNodes.forEach(function(node, index) {
           var data = node.data || {};
           var id = node.id() || 'node-' + index;
           var name = data.name || id;
           var labels = data.labels || data.labelString || '';
           var labelsStr = Array.isArray(labels) ? labels.join(', ') : labels;
           
-          // Build searchable text
           var searchText = (name + ' ' + id + ' ' + labelsStr + ' ' + JSON.stringify(data)).toLowerCase();
           
           if (searchTerm && searchText.indexOf(searchTerm) === -1) {
@@ -814,7 +887,6 @@
           var relationship = data.relationship || data.relationshipTypes || '';
           var relStr = Array.isArray(relationship) ? relationship.join(', ') : relationship;
           
-          // Build searchable text
           var searchText = (fromName + ' ' + toName + ' ' + relStr + ' ' + JSON.stringify(data)).toLowerCase();
           
           if (searchTerm && searchText.indexOf(searchTerm) === -1) {
@@ -838,6 +910,58 @@
         });
       }
       
+      // Render agents (active first, then removed)
+      if (currentTab === 'all' || currentTab === 'agents') {
+        var agentIds = Object.keys(agentData);
+        agentIds.sort(function(a, b) {
+          var ra = agentData[a].removed ? 1 : 0;
+          var rb = agentData[b].removed ? 1 : 0;
+          return ra - rb;
+        });
+        agentIds.forEach(function(aid) {
+          var agent = agentData[aid];
+          var historyStr = (agent.visitHistory || []).join(', ');
+          var searchText = (aid + ' ' + (agent.currentNode || '') + ' ' + historyStr).toLowerCase();
+          
+          if (searchTerm && searchText.indexOf(searchTerm) === -1) {
+            return;
+          }
+          
+          matchCount++;
+          
+          var colorHex = '#' + ('000000' + (agent.color || 0).toString(16)).slice(-6);
+          var opacity = agent.removed ? ' style="opacity: 0.5;"' : '';
+          var statusBadge = agent.removed
+            ? '<span class="list-item-badge" style="background:#999;">Removed</span>'
+            : '<span class="list-item-badge agent">Active</span>';
+          
+          html += '<div class="list-item"' + opacity + '>';
+          html += '  <div class="list-item-main">';
+          html += '    <div class="list-item-title">';
+          html += '      <span class="agent-color-swatch" style="background-color: ' + colorHex + ';"></span>';
+          html += escapeHtml(aid);
+          html += '      ' + statusBadge;
+          html += '    </div>';
+          if (agent.removed) {
+            html += '    <div class="list-item-subtitle">Last node: ' + escapeHtml((agent.visitHistory && agent.visitHistory.length > 0) ? agent.visitHistory[agent.visitHistory.length - 1] : 'unknown') + '</div>';
+          } else {
+            html += '    <div class="list-item-subtitle">Current node: ' + escapeHtml(agent.currentNode || 'unknown') + '</div>';
+          }
+          
+          if (agent.visitHistory && agent.visitHistory.length > 0) {
+            html += '    <div class="agent-history">';
+            agent.visitHistory.forEach(function(nodeId, i) {
+              if (i > 0) html += '<span class="agent-history-arrow">&#8594;</span>';
+              html += '<span class="agent-history-step">' + escapeHtml(nodeId) + '</span>';
+            });
+            html += '    </div>';
+          }
+          
+          html += '  </div>';
+          html += '</div>';
+        });
+      }
+      
       if (matchCount === 0) {
         if (searchTerm) {
           html = '<div class="list-empty">No matches found for "' + escapeHtml(searchTerm) + '"</div>';
@@ -848,14 +972,14 @@
       
       container.innerHTML = html;
       
-      // Update stats with filter info
       var statsEl = document.getElementById('listStats');
-      var totalNodes = nodes.length;
+      var totalNodes = graphNodes.length;
       var totalEdges = edges.length;
+      var totalAgents = Object.keys(agentData).length;
       if (searchTerm) {
-        statsEl.textContent = 'Showing ' + matchCount + ' matches (Total: ' + totalNodes + ' nodes, ' + totalEdges + ' edges)';
+        statsEl.textContent = 'Showing ' + matchCount + ' matches (Total: ' + totalNodes + ' nodes, ' + totalEdges + ' edges, ' + totalAgents + ' agents)';
       } else {
-        statsEl.textContent = 'Total: ' + totalNodes + ' nodes, ' + totalEdges + ' edges';
+        statsEl.textContent = 'Total: ' + totalNodes + ' nodes, ' + totalEdges + ' edges, ' + totalAgents + ' agents';
       }
     }
 
@@ -903,10 +1027,11 @@
         logMessage('Custom event received: ' + JSON.stringify(message.data));
       });
 
-      // Start with empty graph - nodes and edges will be added via WebSocket messages
-      graph.renderIn("graph");
+      graphFrame = graph.renderIn("graph");
       logMessage('Empty graph initialized - waiting for data from MASS Java...');
       logMessage('Click on nodes and edges to view their properties!');
+
+      startNodeLabelLoop();
     }
 
     // Send message via WebSocket or HTTP
@@ -957,14 +1082,20 @@
           try {
             var message = JSON.parse(event.data);
             
-            // Handle the message in the graph
-            graph.handleMessage(message);
+            // Track agent data locally
+            handleAgentTracking(message);
             
-            // Log it
+            // Route to graph (skip agent_list since the graph lib doesn't know it)
+            if (message.type !== 'agent_list') {
+              graph.handleMessage(message);
+            }
+            
             if (message.type === 'connection') {
               logMessage('Server: ' + message.message);
+            } else if (message.type === 'agent_list') {
+              // silent - don't flood the log
             } else {
-              logMessage('⬇️ Received: ' + JSON.stringify(message));
+              logMessage('Received: ' + JSON.stringify(message));
             }
           } catch (e) {
             logMessage('WS error: ' + e.message);
@@ -1079,6 +1210,121 @@
         simInterval = null;
         logMessage('Simulation stopped');
       }
+    }
+
+    // Agent tracking from WebSocket messages
+    function handleAgentTracking(message) {
+      if (message.type === 'spawn_agent') {
+        var aid = message.id || message.agentId;
+        if (aid) {
+          var nodeId = message.nodeId || message.node_id || '';
+          agentData[aid] = {
+            id: aid,
+            currentNode: nodeId,
+            color: message.color || 0xFFFF00,
+            visitHistory: [nodeId],
+            removed: false
+          };
+        }
+      } else if (message.type === 'move_agent') {
+        var aid = message.agentId || message.agent_id || message.id;
+        var target = message.targetNodeId || message.target_node_id;
+        if (aid && agentData[aid]) {
+          agentData[aid].currentNode = target;
+          agentData[aid].visitHistory.push(target);
+        }
+      } else if (message.type === 'remove_agent') {
+        var aid = message.agentId || message.agent_id || message.id;
+        if (aid && agentData[aid]) {
+          agentData[aid].removed = true;
+          agentData[aid].currentNode = null;
+        }
+      } else if (message.type === 'agent_list') {
+        // Full sync from backend -- includes both active and removed agents
+        var incoming = message.agents || [];
+        var newData = {};
+        incoming.forEach(function(a) {
+          newData[a.id] = {
+            id: a.id,
+            currentNode: a.currentNode || null,
+            color: a.color || 0xFFFF00,
+            visitHistory: a.visitHistory || [],
+            removed: !!a.removed
+          };
+        });
+        agentData = newData;
+      }
+    }
+
+    // Node label overlay (Feature 3) - only for graphs with < 100 nodes
+    function startNodeLabelLoop() {
+      var labelsContainer = document.getElementById('node-labels');
+      var labelEls = {};
+
+      function updateLabels() {
+        requestAnimationFrame(updateLabels);
+
+        if (!graph || !graphFrame || !graphFrame.camera || !graphFrame.renderer) return;
+
+        var allNodes = graph.nodes();
+        if (allNodes.length === 0 || allNodes.length >= 100) {
+          if (labelsContainer.childNodes.length > 0) {
+            labelsContainer.innerHTML = '';
+            labelEls = {};
+          }
+          return;
+        }
+
+        var camera = graphFrame.camera;
+        var renderer = graphFrame.renderer;
+        var width = renderer.domElement.clientWidth;
+        var height = renderer.domElement.clientHeight;
+        var scale = graphFrame.scale || 1;
+
+        var activeIds = {};
+
+        allNodes.forEach(function(node) {
+          var id = node.id() || '';
+          if (!id) return;
+          activeIds[id] = true;
+
+          var pos = node._pos;
+          var vec = pos.clone().multiplyScalar(scale);
+          vec.project(camera);
+
+          // Check if behind camera
+          if (vec.z > 1) {
+            if (labelEls[id]) labelEls[id].style.display = 'none';
+            return;
+          }
+
+          var x = (vec.x * 0.5 + 0.5) * width;
+          var y = (-vec.y * 0.5 + 0.5) * height;
+
+          var el = labelEls[id];
+          if (!el) {
+            el = document.createElement('span');
+            el.className = 'node-label';
+            el.textContent = id;
+            labelsContainer.appendChild(el);
+            labelEls[id] = el;
+          }
+
+          el.style.display = '';
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+        });
+
+        // Remove stale labels
+        for (var lid in labelEls) {
+          if (!activeIds[lid]) {
+            labelsContainer.removeChild(labelEls[lid]);
+            delete labelEls[lid];
+          }
+        }
+      }
+
+      updateLabels();
     }
 
     // Logging
