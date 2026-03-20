@@ -169,8 +169,6 @@ Remove a registered message handler.
 
 **Returns:** Graph instance (chainable)
 
-## Demo Files
+## Demo
 
-- `viewer.html` - Full-featured demo with WebSocket support
-- `agent-demo.html` - Interactive agent movement demo
-- `demo.html` - Basic clickable nodes/edges demo
+- `viewer.html` - WebSocket-driven visualizer with message controls and agent tracking

@@ -1,24 +1,22 @@
 # Graphosaurus Quick Start Guide
 
-A 3D graph visualization library with message-driven agent control for visualizing graph database queries, network traffic, and distributed systems.
+WebSocket-driven 3D graph visualizer for MASS agent simulations.
 
-## Setup (5 minutes)
+## Setup
 
-### 1. Clone and Install
+### 1. Install
 
 ```bash
-git clone https://github.com/frewsxcv/graphosaurus.git
-cd graphosaurus
 npm install
 ```
 
-### 2. Build the Project
+### 2. Build
 
 ```bash
 npm run build
 ```
 
-This generates `dist/graphosaurus.js` and `dist/graphosaurus.min.js`.
+This generates `dist/graphosaurus.js`.
 
 ### 3. Start the Message Server
 
@@ -28,11 +26,9 @@ npm run server
 
 The server starts on `http://localhost:8080` with WebSocket support.
 
-### 4. Open the Demo
+### 4. Open the Viewer
 
-Open `viewer.html` in your browser (just double-click it or use a local server).
-
-The demo will auto-connect to the WebSocket server and you'll see an empty 3D graph ready to receive data.
+Open `viewer.html` in your browser. It auto-connects to `ws://localhost:8080` and waits for graph data.
 
 ## Usage
 
@@ -123,17 +119,10 @@ ws.onopen = () => {
 }
 ```
 
-## Demo Files
-
-- `viewer.html` - Full WebSocket demo with UI controls
-- `agent-demo.html` - Interactive agent movement
-- `demo.html` - Basic static graph
-
 ## Documentation
 
-- **Full API**: See [MESSAGE_API.md](MESSAGE_API.md) for complete message format documentation
-- **JSDoc**: Generated API docs in `doc/` folder
-- **Examples**: Check `examples/` folder for more advanced usage
+- [MESSAGE_API.md](MESSAGE_API.md) - Complete message format documentation
+- [DEMO.md](DEMO.md) - Detailed demo and integration guide
 
 ## Testing with Scripts
 
@@ -159,7 +148,7 @@ These scripts send example messages to the server for testing.
 **Agents don't appear:**
 - Ensure nodeId matches an existing node in your graph
 - Check the message format is valid JSON
-- Look at the Message Log in the demo UI
+- Look at the Message Log in the viewer UI
 
 **Build fails:**
 - Make sure Node.js and npm are installed

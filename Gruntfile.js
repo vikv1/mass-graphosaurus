@@ -3,18 +3,8 @@ module.exports = function (grunt) {
 
     var SRC_FILES = "src/**/*.js";
 
-    // Project configuration.
     grunt.initConfig({
         pkg: grunt.file.readJSON("package.json"),
-        jsdoc: {
-            dist: {
-                src: [SRC_FILES],
-                options: {
-                    destination: "doc",
-                }
-            }
-        },
-        clean: ["doc/"],
         jshint: {
             all: ["Gruntfile.js", SRC_FILES],
             options: {
@@ -55,17 +45,11 @@ module.exports = function (grunt) {
         }
     });
 
-    // Load plugins
-    grunt.loadNpmTasks("grunt-contrib-clean");
     grunt.loadNpmTasks("grunt-contrib-jshint");
     grunt.loadNpmTasks("grunt-contrib-uglify");
     grunt.loadNpmTasks("grunt-contrib-watch");
     grunt.loadNpmTasks("grunt-browserify");
-    grunt.loadNpmTasks("grunt-jsdoc");
 
-    // Tasks
-    grunt.registerTask("default", ["compile", "doc"]);
-
+    grunt.registerTask("default", ["compile"]);
     grunt.registerTask("compile", ["jshint", "browserify", "uglify"]);
-    grunt.registerTask("doc", ["clean", "jsdoc"]);
 };

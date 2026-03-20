@@ -210,4 +210,5 @@ Representative payloads:
 - `viewer.html` - main visualizer UI
 - `server.js` - WebSocket/HTTP message relay server
 - `MESSAGE_API.md` - message API details
-- `QUICKSTART.md` - shorter setup guide
+- `QUICKSTART.md` - setup guide
+- `DEMO.md` - demo and integration guide

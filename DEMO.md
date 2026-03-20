@@ -1,6 +1,6 @@
 # Graphosaurus Demo Guide
 
-Complete guide to running the interactive agent visualization demos with WebSocket and HTTP message support.
+Complete guide to running the MASS graph visualizer with WebSocket and HTTP message support.
 
 ## Quick Start
 
@@ -10,23 +10,18 @@ Complete guide to running the interactive agent visualization demos with WebSock
 npm install
 ```
 
-### 2. Start the Message Server
+### 2. Build and Start
 
 ```bash
+npm run build
 npm run server
 ```
 
 The server will start on http://localhost:8080 with both WebSocket and HTTP endpoints.
 
-### 3. Open the Demo
+### 3. Open the Viewer
 
-Open `message-demo.html` in your browser and click "Connect" to connect to the WebSocket server.
-
-## Demo Files
-
-- **`message-demo.html`** - Full-featured demo with WebSocket, HTTP, and manual controls
-- **`agent-demo.html`** - Interactive agent spawning with buttons
-- **`demo.html`** - Basic clickable nodes and edges
+Open `viewer.html` in your browser. It will auto-connect to `ws://localhost:8080`.
 
 ## Server API
 
@@ -300,12 +295,6 @@ ws.on('message', (data) => {
 });
 ```
 
-## Available Node IDs
-
-The demo graph has the following node IDs available:
-- `center` - Central hub (red)
-- `node-0` through `node-7` - Ring nodes (various colors)
-
 ## Troubleshooting
 
 ### Server Won't Start
@@ -347,15 +336,5 @@ The server has CORS enabled by default. If you still see CORS errors, make sure 
 ## Next Steps
 
 - Read `MESSAGE_API.md` for complete API documentation
-- Check `examples/` directory for more demos
-- Integrate with your graph database (Neo4j, ArangoDB, etc.)
-- Build custom simulations for your use case
-
-## Support
-
-For issues or questions:
-1. Check the documentation in `MESSAGE_API.md`
-2. Review the example demos
-3. Check server console output for errors
-4. Open an issue on GitHub
+- Integrate with your MASS application
 

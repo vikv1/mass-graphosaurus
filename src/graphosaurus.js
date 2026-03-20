@@ -1,27 +1,10 @@
 (function () {
     "use strict";
 
-    var Frame = require("./frame"),
-        Node = require("./node"),
-        Edge = require("./edge"),
-        Graph = require("./graph"),
-        Agent = require("./agent"),
-        nonew = require("nonew");
+    var Graph = require("./graph");
 
     window.G = window.Graphosaurus = {
-        Frame: Frame,
-        frame: nonew(Frame),
-
-        Node: Node,
-        node: nonew(Node),
-
-        Edge: Edge,
-        edge: nonew(Edge),
-
         Graph: Graph,
-        graph: nonew(Graph),
-
-        Agent: Agent,
-        agent: nonew(Agent),
+        graph: function (props) { return new Graph(props); },
     };
 }());
