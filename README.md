@@ -1,26 +1,24 @@
-# Graphosaurus for MASS
+# Graphosaurus
 
-This project is the WebSocket-driven 3D visualizer used by MASS graph simulations.
-It receives graph and agent messages (nodes, edges, spawn/move/remove) and renders them in real time.
+WebSocket-driven 3D graph visualizer. Receives graph structure and agent messages over WebSocket and renders them in real time.
 
-Use this document as the source of truth for running the visualizer with current MASS Graphosaurus integration.
+## Architecture
 
-## What This Supports
+```
+[Any Client] --WebSocket--> [server.js :8080] <--WebSocket--> [Browser viewer.html]
+                                   |
+                          Relays JSON messages
+```
 
-- Real-time graph updates from MASS over WebSocket
-- Agent movement visualization (`spawn_agent`, `move_agent`, `remove_agent`)
-- Incremental graph reveal (partial loading mode)
-- Property graph metadata display (labels/properties on nodes and edges)
-- Agent list/history synchronization via `agent_list`
+## Features
 
-## Prerequisites
+- On-demand graph building via `add_node` and `add_edge` messages
+- Agent movement visualization: `spawn_agent`, `move_agent`, `remove_agent`
+- Clickable nodes and edges with property popups
+- Agent list panel with visit history tracking
+- WebSocket and HTTP POST message ingestion
 
-- Node.js + npm
-- MASS application built and runnable
-
-## 1) Start Graphosaurus
-
-From this directory:
+## Setup
 
 ```bash
 npm install
@@ -34,181 +32,52 @@ Server defaults:
 - WebSocket: `ws://localhost:8080`
 - Health check: `http://localhost:8080/health`
 
-## 2) Open the Visualizer UI
+Open `viewer.html` in a browser. It auto-connects to `ws://localhost:8080`.
 
-Open:
+## Message Types
 
-- `viewer.html`
+The viewer handles these message types (see [MESSAGE_API.md](MESSAGE_API.md) for full details):
 
-The viewer auto-connects to `ws://localhost:8080` and logs incoming messages.
+- `add_node` -- add a vertex to the graph
+- `add_edge` -- add an edge between two existing vertices
+- `spawn_agent` -- spawn an agent at a node
+- `move_agent` -- move an agent to a target node
+- `remove_agent` -- remove an agent
+- `agent_list` -- full sync of agent state (used by viewer side panel)
 
-## 3) Enable from MASS
+## Server API
 
-You can enable visualization through system properties (recommended) or API calls.
+### WebSocket
 
-### Option A: system properties (recommended)
+Connect to `ws://localhost:8080`. All messages are broadcast to every connected client.
 
-Add JVM properties when starting MASS:
+### HTTP POST
 
-```text
--Dgraphosaurus.enabled=true
--Dgraphosaurus.websocket.url=ws://localhost:8080
--Dgraphosaurus.poll.interval=500
--Dgraphosaurus.partial.loading=false
+`POST /message` with a JSON body:
+
+```bash
+curl -X POST http://localhost:8080/message \
+  -H "Content-Type: application/json" \
+  -d '{"type":"add_node","id":"n1","position":[0,0,0],"color":16711680}'
 ```
 
-### Option B: API calls in code
+### Health Check
 
-```java
-graph.enableGraphosaurusVisualization("ws://localhost:8080", 500, false);
+```bash
+curl http://localhost:8080/health
+# {"status":"ok","clients":1}
 ```
-
-Disable at runtime:
-
-```java
-graph.disableGraphosaurusVisualization();
-```
-
-## Runtime Modes
-
-### Full graph mode
-
-- `graphosaurus.partial.loading=false`
-- MASS sends complete graph structure, then agent updates.
-
-### Partial loading mode
-
-- `graphosaurus.partial.loading=true`
-- MASS only sends nodes/edges as agents visit them.
-- Best for very large graphs where full upfront transfer is expensive.
-
-## Important Runtime Properties (MASS Side)
-
-The following properties are read by the MASS listener integration:
-
-- `graphosaurus.enabled` (default `false`)
-- `graphosaurus.websocket.url` (default `ws://localhost:8080`)
-- `graphosaurus.poll.interval` (default `500`)
-- `graphosaurus.partial.loading` (default `false`)
-- `graphosaurus.poll.global` (default `false`)
-  - `false`: poll local places (lower overhead, recommended default)
-  - `true`: poll full distributed graph every cycle
-- `graphosaurus.queue.max` (default `20000`)
-  - max buffered outbound messages before dropping oldest
-- `graphosaurus.resync.on.reconnect` (default `true`)
-  - resend graph/agent state after WebSocket reconnect
-- `graphosaurus.sync.delay.ms` (default `1000`)
-  - delay before reconnect resync starts
-
-## Message Contract Used by MASS
-
-The viewer handles these message types:
-
-- `add_node`
-- `add_edge`
-- `spawn_agent`
-- `move_agent`
-- `remove_agent`
-- `agent_list` (used by viewer side panel/state sync)
-
-Representative payloads:
-
-```json
-{
-  "type": "add_node",
-  "id": "node-1",
-  "color": 8947848,
-  "position": [0.0, 0.0, 0.0],
-  "data": { "name": "Node 1" }
-}
-```
-
-```json
-{
-  "type": "add_edge",
-  "fromNodeId": "node-1",
-  "toNodeId": "node-2",
-  "color": 13421772,
-  "data": { "relationship": "KNOWS" }
-}
-```
-
-```json
-{
-  "type": "spawn_agent",
-  "nodeId": "node-1",
-  "id": "agent-7",
-  "color": 16776960,
-  "shape": "sphere",
-  "data": { "agentId": 7 }
-}
-```
-
-```json
-{
-  "type": "move_agent",
-  "agentId": "agent-7",
-  "targetNodeId": "node-2",
-  "speed": 1.0
-}
-```
-
-```json
-{
-  "type": "remove_agent",
-  "agentId": "agent-7"
-}
-```
-
-```json
-{
-  "type": "agent_list",
-  "agents": [
-    {
-      "id": "agent-7",
-      "currentNode": "node-2",
-      "color": 16776960,
-      "visitHistory": ["node-1", "node-2"],
-      "removed": false
-    }
-  ]
-}
-```
-
-## Typical End-to-End Run
-
-1. Start Graphosaurus server: `npm run server`
-2. Open `viewer.html`
-3. Start MASS with Graphosaurus enabled properties
-4. Verify:
-   - nodes/edges appear
-   - agents spawn and move
-   - list panel updates with agent history
-5. Stop MASS or call `disableGraphosaurusVisualization()`
 
 ## Troubleshooting
 
-- **Viewer stays empty**
-  - Confirm MASS is started with `-Dgraphosaurus.enabled=true`
-  - Check URL: `graphosaurus.websocket.url` must match server
-  - Verify server health endpoint responds
-
-- **Agents appear but graph structure is incomplete**
-  - If partial mode is on, this is expected: only visited areas are shown
-  - Turn off partial mode for full upfront graph
-
-- **High message volume**
-  - Increase `graphosaurus.queue.max`
-  - Increase `graphosaurus.poll.interval`
-  - Keep `graphosaurus.poll.global=false` unless you specifically need global polling
-
-- **Reconnect happened and state looks stale**
-  - Ensure `graphosaurus.resync.on.reconnect=true` (default)
+- **Viewer stays empty** -- No messages have been received yet. Send `add_node` messages or connect a client that streams graph data.
+- **Connection refused** -- Make sure the server is running: `npm run server`
+- **Agents don't appear** -- The `nodeId` in `spawn_agent` must match an existing node's ID.
 
 ## Related Files
 
-- `viewer.html` - main visualizer UI
-- `server.js` - WebSocket/HTTP message relay server
-- `MESSAGE_API.md` - message API details
-- `QUICKSTART.md` - setup guide
-- `DEMO.md` - demo and integration guide
+- `viewer.html` -- main visualizer UI
+- `server.js` -- WebSocket/HTTP message relay server
+- [MESSAGE_API.md](MESSAGE_API.md) -- message format reference
+- [QUICKSTART.md](QUICKSTART.md) -- setup guide
+- [DEMO.md](DEMO.md) -- testing guide
