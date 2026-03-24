@@ -252,6 +252,7 @@ module.exports = (function () {
 
         this.edges.addAttribute('position', positions);
         this.edges.addAttribute('color', colors);
+        this.edges.computeBoundingSphere();
     };
 
     Frame.prototype._initMouseEvents = function (elem) {
@@ -318,9 +319,13 @@ module.exports = (function () {
                 }
                 
                 // Check edges if enabled
-                if (includeEdges) {
-                    // Use a larger threshold for easier edge selection
-                    raycaster.params.Line.threshold = threshold * 0.5;
+                if (includeEdges && self.edges.attributes.position) {
+                    if (!self.edges.boundingSphere) {
+                        self.edges.computeBoundingSphere();
+                    }
+                    var camDist = self.camera.position.distanceTo(
+                        self.edges.boundingSphere.center);
+                    raycaster.linePrecision = camDist * 0.02;
                     var edgeIntersects = raycaster.intersectObject(self.line);
                     if (edgeIntersects.length) {
                         var edgeIndex = Math.floor(edgeIntersects[0].index / 2);
