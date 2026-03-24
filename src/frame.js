@@ -293,11 +293,27 @@ module.exports = (function () {
                 // Check nodes first
                 var intersects = raycaster.intersectObject(self.pointCloud);
                 if (intersects.length) {
-                    var nodeIndex = intersects[0].index;
-                    callback({
-                        type: 'node',
-                        node: self.graph._nodes[nodeIndex]
-                    });
+                    // The buffer may have been re-sorted by BufferGeometrySorter,
+                    // so the buffer index doesn't reliably map to _nodes[].
+                    // Instead, find the closest node by comparing world positions.
+                    var hitPoint = intersects[0].point;
+                    var bestNode = null;
+                    var bestDist = Infinity;
+                    var allNodes = self.graph._nodes;
+                    for (var ni = 0; ni < allNodes.length; ni++) {
+                        var np = allNodes[ni]._pos;
+                        var dx = hitPoint.x - np.x * self.scale;
+                        var dy = hitPoint.y - np.y * self.scale;
+                        var dz = hitPoint.z - np.z * self.scale;
+                        var d = dx*dx + dy*dy + dz*dz;
+                        if (d < bestDist) {
+                            bestDist = d;
+                            bestNode = allNodes[ni];
+                        }
+                    }
+                    if (bestNode) {
+                        callback({ type: 'node', node: bestNode });
+                    }
                     return;
                 }
                 

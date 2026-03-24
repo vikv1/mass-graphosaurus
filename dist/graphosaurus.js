@@ -2,24 +2,6 @@
 module.exports = (function () {
     "use strict";
 
-    /**
-     * Allows constructors to be called without using `new`
-     */
-    var nonew = function (Constructor) {
-        return function () {
-            var instance = Object.create(Constructor.prototype);
-            Constructor.apply(instance, arguments);
-            return instance;
-        };
-    };
-
-    return nonew;
-}());
-
-},{}],2:[function(require,module,exports){
-module.exports = (function () {
-    "use strict";
-
     var THREE = require("three");
 
     var BufferGeometrySorter = function (frameSkip) {
@@ -83,7 +65,7 @@ module.exports = (function () {
     return BufferGeometrySorter;
 }());
 
-},{"three":4}],3:[function(require,module,exports){
+},{"three":3}],2:[function(require,module,exports){
 /**
  * @author Eberhard Graether / http://egraether.com/
  * @author Mark Lundin / http://mark-lundin.com
@@ -702,7 +684,7 @@ function preventEvent( event ) { event.preventDefault(); }
 
 Trackball.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-},{"three":4}],4:[function(require,module,exports){
+},{"three":3}],3:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**
@@ -41385,7 +41367,7 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -41523,7 +41505,7 @@ module.exports = (function () {
 }());
 
 
-},{"three":4}],6:[function(require,module,exports){
+},{"three":3}],5:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -41633,7 +41615,7 @@ module.exports = (function () {
     return Edge;
 }());
 
-},{"three":4}],7:[function(require,module,exports){
+},{"three":3}],6:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -41929,11 +41911,27 @@ module.exports = (function () {
                 // Check nodes first
                 var intersects = raycaster.intersectObject(self.pointCloud);
                 if (intersects.length) {
-                    var nodeIndex = intersects[0].index;
-                    callback({
-                        type: 'node',
-                        node: self.graph._nodes[nodeIndex]
-                    });
+                    // The buffer may have been re-sorted by BufferGeometrySorter,
+                    // so the buffer index doesn't reliably map to _nodes[].
+                    // Instead, find the closest node by comparing world positions.
+                    var hitPoint = intersects[0].point;
+                    var bestNode = null;
+                    var bestDist = Infinity;
+                    var allNodes = self.graph._nodes;
+                    for (var ni = 0; ni < allNodes.length; ni++) {
+                        var np = allNodes[ni]._pos;
+                        var dx = hitPoint.x - np.x * self.scale;
+                        var dy = hitPoint.y - np.y * self.scale;
+                        var dz = hitPoint.z - np.z * self.scale;
+                        var d = dx*dx + dy*dy + dz*dz;
+                        if (d < bestDist) {
+                            bestDist = d;
+                            bestNode = allNodes[ni];
+                        }
+                    }
+                    if (bestNode) {
+                        callback({ type: 'node', node: bestNode });
+                    }
                     return;
                 }
                 
@@ -42129,7 +42127,7 @@ module.exports = (function () {
     return Frame;
 }());
 
-},{"three":4,"three-buffergeometry-sort":2,"three.trackball":3}],8:[function(require,module,exports){
+},{"three":3,"three-buffergeometry-sort":1,"three.trackball":2}],7:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -42627,36 +42625,19 @@ module.exports = (function () {
     return Graph;
 }());
 
-},{"./agent":5,"./edge":6,"./frame.js":7,"./node":10}],9:[function(require,module,exports){
+},{"./agent":4,"./edge":5,"./frame.js":6,"./node":9}],8:[function(require,module,exports){
 (function () {
     "use strict";
 
-    var Frame = require("./frame"),
-        Node = require("./node"),
-        Edge = require("./edge"),
-        Graph = require("./graph"),
-        Agent = require("./agent"),
-        nonew = require("nonew");
+    var Graph = require("./graph");
 
     window.G = window.Graphosaurus = {
-        Frame: Frame,
-        frame: nonew(Frame),
-
-        Node: Node,
-        node: nonew(Node),
-
-        Edge: Edge,
-        edge: nonew(Edge),
-
         Graph: Graph,
-        graph: nonew(Graph),
-
-        Agent: Agent,
-        agent: nonew(Agent),
+        graph: function (props) { return new Graph(props); },
     };
 }());
 
-},{"./agent":5,"./edge":6,"./frame":7,"./graph":8,"./node":10,"nonew":1}],10:[function(require,module,exports){
+},{"./graph":7}],9:[function(require,module,exports){
 module.exports = (function () {
     "use strict";
 
@@ -42772,4 +42753,4 @@ module.exports = (function () {
     return Node;
 }());
 
-},{"three":4}]},{},[5,6,7,8,9,10]);
+},{"three":3}]},{},[4,5,6,7,8,9]);
